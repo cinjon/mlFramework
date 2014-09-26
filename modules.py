@@ -87,6 +87,12 @@ class Framework(object):
             del self.pipeline[key]
 
     def split_set(self, X, y, test_size=.5, make_np=True):
+        """Returns trX, trY, teX, teY after splitting X and y into a training and test set according to the test_size fraction
+        @X: set of descriptors
+        @y: set of consequents
+        @test_size: fraction to break it into. .33 would be 1/3 test
+        @make_np: bool on if the return should be a numpy array
+        """
         train_X, test_X, train_y, test_y = cross_validation.train_test_split(X, y, test_size=test_size)
         if make_np:
             return self._convert_to_np(train_X, train_y, test_X, test_y)
@@ -123,7 +129,6 @@ class Framework(object):
             print 'Best Score: %s' % str(predictor.best_score_)
             print 'Best Params: %s' % str(predictor.best_params_)
             print 'Best Estimator: %s' % str(predictor.best_estimator_)
-            print '\n'
             print '... Using the test set ...'
             print 'Score from best estimator: %s' % str(predictor.score(test_x, test_y))
             pred = predictor.predict(test_x)
@@ -140,7 +145,7 @@ class Framework(object):
         """
         plt.figure(figsize=(8, 6))
         scores = predictor.grid_scores_
-        scores = [x[1] for x in score_dict]
+        scores = [x[1] for x in scores]
         scores = np.array(scores).reshape(len(x_range), len(y_range))
         plt.figure(figsize=(8, 6))
         plt.subplots_adjust(left=0.05, right=0.95, bottom=0.15, top=0.95)
