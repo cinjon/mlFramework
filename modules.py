@@ -3,6 +3,7 @@ from sklearn import cross_validation
 from sklearn import pipeline as skpipeline
 from sklearn import svm
 from sklearn import ensemble
+from sklearn.metrics import confusion_matrix
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,8 +17,8 @@ class Framework(object):
     """
 
     default_param_grid = {
-        'rf':{'rf__n_estimators':[10,20,30], 'rf__criterion':['gini', 'entropy'],
-              'rf__max_features':[5,10,15], 'rf__max_depth':['auto', 'log2', 'sqrt', None]},
+        'rf':{'rf__n_estimators':[10,20,30,40,50], 'rf__criterion':['gini', 'entropy'],
+              'rf__max_depth':[5,10,15], 'rf__max_features':['log2', 'sqrt', None]},
         'adaboost':{},
         'gradboost':{}
         }
@@ -52,6 +53,7 @@ class Framework(object):
                 print 'Skipping %s because we have no params for it.' % key
                 continue
             cvs[key] = self._train_grid(pipeline, param_grid, X, y)
+        self.print_results(cvs, test_X, test_y)
         return cvs
 
     def get_pipeline(self):
@@ -114,15 +116,20 @@ class Framework(object):
         return True
 
     @classmethod
-    def print_results(cls, cvs):
+    def print_results(cls, cvs, test_x, test_y):
         """@cvs: a dict of algo name to predictor"""
         for name, predictor in cvs.iteritems():
             print name
-            print predictor.best_score_
-            print predictor.best_params_
-            print predictor.best_estimator_
-            print predictor.grid_scores_
+            print 'Best Score: %s' % str(predictor.best_score_)
+            print 'Best Params: %s' % str(predictor.best_params_)
+            print 'Best Estimator: %s' % str(predictor.best_estimator_)
             print '\n'
+            print '... Using the test set ...'
+            print 'Score from best estimator: %s' % str(predictor.score(test_x, test_y))
+            pred = predictor.predict(test_x)
+            print 'Confusion Matrix:'
+            print confusion_matrix(test_y, pred)
+            print '\n\n'
 
     @classmethod
     def grid_heatmap(cls, predictor, x_range, y_range):
