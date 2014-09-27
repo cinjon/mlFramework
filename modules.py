@@ -3,9 +3,17 @@ from sklearn import cross_validation
 from sklearn import pipeline as skpipeline
 from sklearn import svm
 from sklearn import ensemble
+from sklearn import preprocessing
 from sklearn.metrics import confusion_matrix
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
+
+def pickle_dump(obj, f):
+    pickle.dump(obj, open(f, 'wb'))
+
+def pickle_load(f):
+    return pickle.load(open(f, 'rb'))
 
 class Framework(object):
     """Framework for running machine learning tests. This class should not be used. Instead, use another class that inherits from this one.
@@ -18,7 +26,7 @@ class Framework(object):
 
     default_param_grid = {
         'rf':{'rf__n_estimators':[10,20,30,40,50], 'rf__criterion':['gini', 'entropy'],
-              'rf__max_depth':[5,10,15], 'rf__max_features':['log2', 'sqrt', None]},
+              'rf__max_depth':[5,10,15,20,25,30], 'rf__max_features':['log2', 'sqrt', None]},
         'adaboost':{},
         'gradboost':{}
         }
@@ -30,7 +38,7 @@ class Framework(object):
 
     def run(self, X, y, test_X=None, test_y=None):
         """
-        Returns a dict of algo type to trained, cved, algos
+        Returns a dict of algo type to trained, cved, algos (and the test data)
         @X, @y, @test_X, @test_y: All reg arrays and not np arrays
         """
         if not self._check_validity(X, y, must_exist=True):
@@ -41,7 +49,8 @@ class Framework(object):
             return
 
         if not test_X or not test_y:
-            X, y, test_X, test_y = self.split_set(X, y, make_np=True)
+            X, test_X, y, test_y = self.split_set(X, y)
+        X, test_X = self.scale(X, test_X)
 
         pipelines = self.get_pipeline()
         param_grids = self.get_param_grid()
@@ -54,7 +63,7 @@ class Framework(object):
                 continue
             cvs[key] = self._train_grid(pipeline, param_grid, X, y)
         self.print_results(cvs, test_X, test_y)
-        return cvs
+        return cvs, test_X, test_y
 
     def get_pipeline(self):
         if not self.pipeline:
@@ -86,17 +95,19 @@ class Framework(object):
         for key in bad_keys:
             del self.pipeline[key]
 
-    def split_set(self, X, y, test_size=.5, make_np=True):
+    def split_set(self, X, y, test_size=.5):
         """Returns trX, trY, teX, teY after splitting X and y into a training and test set according to the test_size fraction
         @X: set of descriptors
         @y: set of consequents
         @test_size: fraction to break it into. .33 would be 1/3 test
         @make_np: bool on if the return should be a numpy array
         """
-        train_X, test_X, train_y, test_y = cross_validation.train_test_split(X, y, test_size=test_size)
-        if make_np:
-            return self._convert_to_np(train_X, train_y, test_X, test_y)
-        return train_X, train_y, test_X, test_y
+        return cross_validation.train_test_split(X, y, test_size=test_size)
+
+    @staticmethod
+    def scale(*args):
+        """@args: all args should be s.t all the entries are floats"""
+        return [preprocessing.scale(arg) for arg in args]
 
     @staticmethod
     def _convert_to_np(*args):
@@ -164,7 +175,7 @@ class Classifier(Framework):
         }
     def __init__(self):
         Framework.__init__(self)
-        self.default_param_grid['svc'] = {'svc__C':10.0 ** np.arange(-2, 9), 'svc__gamma':10.0 ** np.arange(-5, 4)}
+        self.default_param_grid['svc'] = {'svc__cache_size':[500], 'svc__C':10.0 ** np.arange(-2, 9), 'svc__gamma':10.0 ** np.arange(-5, 4)}
 
 class Regressor(Framework):
     algorithm_dict = {
